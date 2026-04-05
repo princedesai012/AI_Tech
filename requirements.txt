@@ -3,4 +3,5 @@ python-dotenv
 beautifulsoup4
 feedparser
 schedule
-google-generativeai
+google-genai
+aiohttp

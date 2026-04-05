@@ -1,8 +1,10 @@
 import os
 from dotenv import load_dotenv
 import requests
+import aiohttp
 import html
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from bs4 import BeautifulSoup
 import feedparser
 import schedule
@@ -25,11 +27,9 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")          # Get Free Key from Google
 
 # Set up Gemini AI
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    generation_config = {"response_mime_type": "application/json"}
-    ai_model = genai.GenerativeModel('gemini-1.5-flash', generation_config=generation_config)
+    ai_client = genai.Client(api_key=GEMINI_API_KEY)
 else:
-    ai_model = None
+    ai_client = None
 
 # Companies and keywords to track
 TECH_COMPANIES = {
@@ -91,78 +91,107 @@ class TechNewsAgent:
         except Exception as e:
             logging.error(f"Error sending message: {e}")
     
-    def fetch_rss_news(self) -> List[Dict]:
-        """Fetch news from RSS feeds"""
+    async def fetch_rss_news(self, session: aiohttp.ClientSession) -> List[Dict]:
+        """Fetch news from RSS feeds asynchronously"""
         all_articles = []
         
-        for source_name, feed_url in RSS_FEEDS.items():
+        async def fetch_feed(source_name, feed_url):
             try:
-                feed = feedparser.parse(feed_url)
-                for entry in feed.entries[:5]:  # Get latest 5 from each source
-                    article = {
-                        'title': entry.get('title', 'No title'),
-                        'link': entry.get('link', ''),
-                        'summary': entry.get('summary', 'No summary'),
-                        'published': entry.get('published', ''),
-                        'source': source_name
-                    }
-                    all_articles.append(article)
-                logging.info(f"Fetched {len(feed.entries[:5])} articles from {source_name}")
+                async with session.get(feed_url) as response:
+                    if response.status == 200:
+                        content = await response.text()
+                        # feedparser parses strings, so we fetch string first manually
+                        feed = feedparser.parse(content)
+                        articles = []
+                        for entry in feed.entries[:5]:  # Get latest 5 from each source
+                            articles.append({
+                                'title': entry.get('title', 'No title'),
+                                'link': entry.get('link', ''),
+                                'summary': entry.get('summary', 'No summary'),
+                                'published': entry.get('published', ''),
+                                'source': source_name
+                            })
+                        logging.info(f"Fetched {len(articles)} articles from {source_name}")
+                        return articles
             except Exception as e:
                 logging.error(f"Error fetching {source_name}: {e}")
-        
+            return []
+
+        tasks = [fetch_feed(name, url) for name, url in RSS_FEEDS.items()]
+        results = await asyncio.gather(*tasks)
+        for res in results:
+            if res:
+                all_articles.extend(res)
+                
         return all_articles
     
-    def fetch_company_specific_news(self) -> List[Dict]:
-        """Fetch news specifically about target companies using News API"""
+    async def fetch_company_specific_news(self, session: aiohttp.ClientSession) -> List[Dict]:
+        """Fetch news specifically about target companies using News API asynchronously"""
         articles = []
         
-        for company, keywords in TECH_COMPANIES.items():
+        async def fetch_company(company, keywords):
             query = f"{company} AI OR {' OR '.join(keywords[:3])}"
             url = f"https://newsapi.org/v2/everything?q={query}&language=en&sortBy=publishedAt&apiKey={NEWS_API_KEY}"
             
             try:
-                response = requests.get(url)
-                if response.status_code == 200:
-                    data = response.json()
-                    for article in data.get('articles', [])[:3]:
-                        articles.append({
-                            'title': article['title'],
-                            'link': article['url'],
-                            'summary': article['description'],
-                            'published': article['publishedAt'],
-                            'source': f"News about {company.upper()}"
-                        })
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        company_articles = []
+                        for article in data.get('articles', [])[:3]:
+                            company_articles.append({
+                                'title': article['title'],
+                                'link': article['url'],
+                                'summary': article['description'],
+                                'published': article['publishedAt'],
+                                'source': f"News about {company.upper()}"
+                            })
+                        return company_articles
             except Exception as e:
                 logging.error(f"Error fetching news for {company}: {e}")
-        
+            return []
+
+        tasks = [fetch_company(c, k) for c, k in TECH_COMPANIES.items()]
+        results = await asyncio.gather(*tasks)
+        for res in results:
+            if res:
+                articles.extend(res)
+                
         return articles
     
-    def fetch_reddit_tech_news(self) -> List[Dict]:
-        """Fetch tech news from Reddit"""
+    async def fetch_reddit_tech_news(self, session: aiohttp.ClientSession) -> List[Dict]:
+        """Fetch tech news from Reddit asynchronously"""
         subreddits = ['artificial', 'MachineLearning', 'technology', 'nvidia']
         articles = []
+        headers = {'User-Agent': 'TechNewsBot/1.0'}
         
-        for subreddit in subreddits:
+        async def fetch_sub(subreddit):
             url = f"https://www.reddit.com/r/{subreddit}/hot.json?limit=5"
-            headers = {'User-Agent': 'TechNewsBot/1.0'}
-            
             try:
-                response = requests.get(url, headers=headers)
-                if response.status_code == 200:
-                    data = response.json()
-                    for post in data['data']['children']:
-                        post_data = post['data']
-                        articles.append({
-                            'title': post_data['title'],
-                            'link': f"https://reddit.com{post_data['permalink']}",
-                            'summary': post_data.get('selftext', 'No description')[:200],
-                            'published': datetime.fromtimestamp(post_data['created_utc']).isoformat(),
-                            'source': f"r/{subreddit}"
-                        })
+                async with session.get(url, headers=headers) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        sub_articles = []
+                        for post in data['data']['children']:
+                            post_data = post['data']
+                            sub_articles.append({
+                                'title': post_data['title'],
+                                'link': f"https://reddit.com{post_data['permalink']}",
+                                'summary': post_data.get('selftext', 'No description')[:200],
+                                'published': datetime.fromtimestamp(post_data['created_utc']).isoformat(),
+                                'source': f"r/{subreddit}"
+                            })
+                        return sub_articles
             except Exception as e:
                 logging.error(f"Error fetching from r/{subreddit}: {e}")
-        
+            return []
+
+        tasks = [fetch_sub(sub) for sub in subreddits]
+        results = await asyncio.gather(*tasks)
+        for res in results:
+            if res:
+                articles.extend(res)
+                
         return articles
     
     def filter_relevant_news(self, articles: List[Dict]) -> List[Dict]:
@@ -209,7 +238,7 @@ class TechNewsAgent:
     
     def enhance_with_ai(self, articles: List[Dict]) -> List[Dict]:
         """Use Gemini AI to structurally format and summarize articles"""
-        if not ai_model:
+        if not ai_client:
             logging.warning("No Gemini API Key found. Skipping AI enhancement.")
             return articles[:15]  # Limit fallback to 15
             
@@ -234,7 +263,13 @@ Articles to process:
             
         try:
             logging.info("Sending batch to Gemini AI for analysis & summary...")
-            response = ai_model.generate_content(prompt)
+            response = ai_client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                )
+            )
             
             cleaned_text = response.text.replace("```json", "").replace("```", "").strip()
             enhanced_articles = json.loads(cleaned_text)
@@ -298,11 +333,21 @@ Articles to process:
         """Main function to collect and send news"""
         logging.info("Starting news collection...")
         
-        # Collect from all sources
+        # Collect from all sources concurrently
         all_articles = []
-        all_articles.extend(self.fetch_rss_news())
-        all_articles.extend(self.fetch_company_specific_news())
-        all_articles.extend(self.fetch_reddit_tech_news())
+        
+        async with aiohttp.ClientSession() as session:
+            # Start fetching from all categories at the EXACT same time
+            rss_task = self.fetch_rss_news(session)
+            company_task = self.fetch_company_specific_news(session)
+            reddit_task = self.fetch_reddit_tech_news(session)
+            
+            # Wait for all of them to finish beautifully together
+            results = await asyncio.gather(rss_task, company_task, reddit_task)
+            
+            all_articles.extend(results[0])
+            all_articles.extend(results[1])
+            all_articles.extend(results[2])
         
         # Filter relevant news using keyword logic first
         relevant_news = self.filter_relevant_news(all_articles)
