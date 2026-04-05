@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 import requests
 import html
+import google.generativeai as genai
 from bs4 import BeautifulSoup
 import feedparser
 import schedule
@@ -20,6 +21,15 @@ load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")  # Get from @BotFather
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")      # Your Telegram chat ID
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")              # Get from NewsAPI
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")          # Get Free Key from Google AI Studio
+
+# Set up Gemini AI
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    generation_config = {"response_mime_type": "application/json"}
+    ai_model = genai.GenerativeModel('gemini-1.5-flash', generation_config=generation_config)
+else:
+    ai_model = None
 
 # Companies and keywords to track
 TECH_COMPANIES = {
@@ -197,6 +207,46 @@ class TechNewsAgent:
         
         return relevant
     
+    def enhance_with_ai(self, articles: List[Dict]) -> List[Dict]:
+        """Use Gemini AI to structurally format and summarize articles"""
+        if not ai_model:
+            logging.warning("No Gemini API Key found. Skipping AI enhancement.")
+            return articles[:15]  # Limit fallback to 15
+            
+        # Limit to 15 articles to keep LLM generation fast and within free limits
+        articles_to_process = articles[:15] 
+        
+        prompt = """You are an expert AI & Tech news editor. 
+Review the following news articles. Filter out any articles that are NOT strongly related to advanced technology, AI, or major tech companies. 
+For the highly relevant ones, rewrite the 'summary' to be exactly two punchy, insightful bullet points (using bullet emoji •) that explain why this news matters.
+IMPORTANT: Return ONLY a JSON list of dictionaries. Each dictionary MUST have these string keys: 'title', 'link', 'summary', 'source', 'company_tag'. Do not include markdown code blocks.
+
+Articles to process:
+"""
+        
+        for art in articles_to_process:
+            prompt += f"Title: {art['title']}\n"
+            prompt += f"Summary: {art['summary']}\n"
+            prompt += f"Link: {art['link']}\n"
+            prompt += f"Source: {art['source']}\n"
+            prompt += f"Company Tag: {art.get('company_tag', 'TECH')}\n"
+            prompt += "---\n"
+            
+        try:
+            logging.info("Sending batch to Gemini AI for analysis & summary...")
+            response = ai_model.generate_content(prompt)
+            
+            cleaned_text = response.text.replace("```json", "").replace("```", "").strip()
+            enhanced_articles = json.loads(cleaned_text)
+            
+            if isinstance(enhanced_articles, list):
+                logging.info(f"Gemini successfully analyzed and returned {len(enhanced_articles)} articles.")
+                return enhanced_articles
+            return articles[:15]
+        except Exception as e:
+            logging.error(f"Error during Gemini AI enhancement: {e}")
+            return articles[:15]
+    
     def format_news_messages(self, articles: List[Dict]) -> List[str]:
         """Format news articles into a list of Telegram messages under the 4000 char length limit"""
         if not articles:
@@ -254,8 +304,12 @@ class TechNewsAgent:
         all_articles.extend(self.fetch_company_specific_news())
         all_articles.extend(self.fetch_reddit_tech_news())
         
-        # Filter relevant news
+        # Filter relevant news using keyword logic first
         relevant_news = self.filter_relevant_news(all_articles)
+        
+        # [NEW] AI Enhancement for intelligent summarization
+        if relevant_news:
+            relevant_news = self.enhance_with_ai(relevant_news)
         
         # Format and send message
         if relevant_news:
