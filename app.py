@@ -14,6 +14,8 @@ from datetime import datetime
 import json
 from typing import List, Dict
 import logging
+from flask import Flask
+import threading
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -488,5 +490,20 @@ def main():
         bot.handle_commands()
         time.sleep(2)
 
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "✅ AI Tech News Bot is running!"
+
+def start_bot():
+    main()  # Your existing main() function
+
 if __name__ == "__main__":
-    main()
+    # Start bot in background thread
+    bot_thread = threading.Thread(target=start_bot)
+    bot_thread.start()
+
+    # Start Flask server (IMPORTANT for Render)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
