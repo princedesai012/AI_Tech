@@ -35,14 +35,106 @@ else:
 
 # Companies and keywords to track
 TECH_COMPANIES = {
-    "nvidia": ["NVIDIA", "Jensen Huang", "GPU", "CUDA", "AI chip"],
-    "google": ["Google", "DeepMind", "Gemini", "Bard", "Google AI"],
-    "microsoft": ["Microsoft", "OpenAI", "Copilot", "Azure AI"],
-    "meta": ["Meta", "Facebook AI", "LLaMA", "AR/VR"],
-    "apple": ["Apple", "Apple Intelligence", "Vision Pro"],
-    "amazon": ["Amazon", "AWS AI", "Bedrock", "Alexa"],
-    "tesla": ["Tesla", "Optimus", "Dojo", "FSD"],
-    "openai": ["OpenAI", "GPT-5", "Sora", "DALL-E", "ChatGPT"]
+    # GPU & Hardware
+    "nvidia": ["NVIDIA", "Jensen Huang", "GPU", "CUDA", "AI chip", "DGX", "H100", "Blackwell"],
+    "amd": ["AMD", "MI300", "ROCm", "Ryzen AI", "Instinct", "Lisa Su", "AI accelerator"],
+    "intel": ["Intel", "Gaudi", "Xeon", "AI PC", "Pat Gelsinger", "Habana", "Falcon Shores"],
+    
+    # Big Tech & AI
+    "google": ["Google", "DeepMind", "Gemini", "Bard", "Google AI", "Vertex AI", "Waymo", "Sundar Pichai"],
+    "microsoft": ["Microsoft", "OpenAI", "Copilot", "Azure AI", "Satya Nadella", "Bing AI"],
+    "meta": ["Meta", "Facebook AI", "LLaMA", "AR/VR", "Mark Zuckerberg", "Segment Anything", "PyTorch"],
+    "apple": ["Apple", "Apple Intelligence", "Vision Pro", "Tim Cook", "Core ML", "Siri"],
+    "amazon": ["Amazon", "AWS AI", "Bedrock", "Alexa", "SageMaker", "Andy Jassy", "Titan"],
+    "tesla": ["Tesla", "Optimus", "Dojo", "FSD", "Elon Musk", "xAI", "Autopilot", "Grok"],
+    
+    # AI Labs & Research
+    "openai": ["OpenAI", "GPT-5", "Sora", "DALL-E", "ChatGPT", "Sam Altman", "GPT-4", "Whisper"],
+    "anthropic": ["Anthropic", "Claude", "Constitutional AI", "Dario Amodei", "Claude 3"],
+    "deepmind": ["DeepMind", "AlphaFold", "Gemini", "Demis Hassabis", "AlphaCode", "Gato"],
+    "cohere": ["Cohere", "Command", "Rerank", "Embed", "Aidan Gomez", "LLM"],
+    "mistral": ["Mistral AI", "Mistral 7B", "Mixtral", "Arthur Mensch", "Mistral Large"],
+    "stability": ["Stability AI", "Stable Diffusion", "Stable Video", "Emad Mostaque"],
+    "midjourney": ["Midjourney", "David Holz", "AI image generation", "Midjourney V6"],
+    
+    # Cloud & Enterprise AI
+    "oracle": ["Oracle", "OCI", "Oracle AI", "Larry Ellison", "AI Cloud", "Vector DB"],
+    "salesforce": ["Salesforce", "Einstein AI", "Marc Benioff", "Salesforce GPT", "Agentforce"],
+    "adobe": ["Adobe", "Firefly", "Sensei AI", "Shantanu Narayen", "Adobe AI"],
+    "ibm": ["IBM", "Watson", "Granite", "Red Hat AI", "Arvind Krishna", "watsonx"],
+    "palantir": ["Palantir", "AIP", "Gotham", "Alex Karp", "Ontology", "Foundry"],
+    
+    # Chinese AI Companies
+    "baidu": ["Baidu", "Ernie", "Robin Li", "Wenxin", "Apollo", "Baidu AI"],
+    "alibaba": ["Alibaba", "Tongyi Qianwen", "Daniel Zhang", "Jack Ma", "Qwen"],
+    "tencent": ["Tencent", "Hunyuan", "Pony Ma", "Tencent AI", "LLM"],
+    "sensetime": ["SenseTime", "Xu Li", "Computer Vision", "SenseNova"],
+    "zhipu": ["Zhipu AI", "ChatGLM", "Tang Jie", "GLM-4"],
+    
+    # AI Startups (Important to watch)
+    "databricks": ["Databricks", "Ali Ghodsi", "Spark AI", "DBRX", "MosaicML"],
+    "scale": ["Scale AI", "Alexandr Wang", "data labeling", "Scale data", "Scale AI"],
+    "huggingface": ["Hugging Face", "Transformers", "Clement Delangue", "Hub", "Inference API"],
+    "together": ["Together AI", "Together compute", "Open source AI", "Vipul Ved"],
+    "replit": ["Replit", "Amjad Masad", "Ghostwriter", "Replit AI", "Code LLM"],
+    "perplexity": ["Perplexity AI", "Aravind Srinivas", "Perplexity Pro", "answer engine"],
+    "character": ["Character.AI", "Noam Shazeer", "Daniel De Freitas", "Character chat"],
+    
+    # AI Infrastructure & Tools
+    "datadog": ["Datadog", "LLM monitoring", "AI observability", "Olivier Pomel"],
+    "confluent": ["Confluent", "Kafka", "Data streaming", "Jay Kreps", "AI pipeline"],
+    "elastic": ["Elastic", "ELK", "Search AI", "Ashutosh Kulkarni", "ESRE"],
+    "mongodb": ["MongoDB", "Dev Ittycheria", "Atlas AI", "Vector search", "MongoDB AI"],
+    
+    # Robotics & Physical AI
+    "figure": ["Figure AI", "Figure 01", "Brett Adcock", "humanoid robot", "OpenAI Figure"],
+    "bostondynamics": ["Boston Dynamics", "Spot", "Atlas", "Marc Raibert", "Hyundai", "Stretch"],
+    "unitree": ["Unitree", "H1", "Yu Cheng", "robotics", "quadruped robot"],
+    "agility": ["Agility Robotics", "Digit", "Damion Shelton", "Cassie", "humanoid"],
+    
+    # Autonomous Vehicles
+    "waymo": ["Waymo", "autonomous driving", "robotaxi", "John Krafcik", "Google self-driving"],
+    "cruise": ["Cruise", "GM autonomous", "Kyle Vogt", "AV", "self-driving car"],
+    "mobileye": ["Mobileye", "Amnon Shashua", "Intel autonomous", "EyeQ", "self-driving tech"],
+    "aurora": ["Aurora Innovation", "Chris Urmson", "Sterling Anderson", "autonomous trucking"],
+    
+    # AI Chips & Hardware (Beyond NVIDIA)
+    "groq": ["Groq", "LPU", "Jonathan Ross", "language processor", "AI inference"],
+    "cerebras": ["Cerebras", "Andrew Feldman", "wafer-scale engine", "CS-3", "AI supercomputer"],
+    "graphcore": ["Graphcore", "IPU", "Nigel Toon", "Bow", "AI accelerator"],
+    "sambanova": ["SambaNova", "Rodrigo Liang", "SN40L", "AI platform", "reconfigurable compute"],
+    "tenstorrent": ["Tenstorrent", "Jim Keller", "Keith Witek", "Grayskull", "AI chip"],
+    "dmatrix": ["d-Matrix", "Sid Sheth", "Jayakumar", "Corsair", "AI inference chip"],
+    
+    # Edge AI & IoT
+    "qualcomm": ["Qualcomm", "Cristiano Amon", "Snapdragon", "Hexagon", "edge AI", "AI PC"],
+    "arm": ["Arm", "Rene Haas", "Armv9", "Ethos", "NPU", "edge computing"],
+    "raspberry": ["Raspberry Pi", "Eben Upton", "Pi AI", "edge AI", "Hailo"],
+    
+    # AI Security & Compliance
+    "crowdstrike": ["CrowdStrike", "George Kurtz", "AI security", "Falcon", "LLM security"],
+    "cloudflare": ["Cloudflare", "Matthew Prince", "Workers AI", "AI gateway", "Vectorize"],
+    
+    # AI Data & Vector Databases
+    "pinecone": ["Pinecone", "vector database", "Edo Liberty", "RAG", "similarity search"],
+    "weaviate": ["Weaviate", "Bob van Luijt", "vector search", "AI database"],
+    "qdrant": ["Qdrant", "Andre Zayarni", "vector similarity", "neural search"],
+    
+    # AI Observability
+    "langchain": ["LangChain", "Harrison Chase", "LLM orchestration", "LangSmith", "LangGraph"],
+    "llamaindex": ["LlamaIndex", "Jerry Liu", "RAG framework", "data framework", "LlamaCloud"],
+    
+    # Additional Important AI Companies
+    "ai21labs": ["AI21 Labs", "Jurassic", "Ori Goshen", "Yoav Shoham", "AI21 Studio"],
+    "reka": ["Reka AI", "Yi Tay", "Reka Core", "multimodal AI", "Mikel Bober-Irizar"],
+    "adept": ["Adept AI", "David Luan", "ACT-1", "AI agent", "Fuyu"],
+    "inflection": ["Inflection AI", "Pi AI", "Reid Hoffman", "Mustafa Suleyman", "Inflection-2"],
+    "runway": ["Runway ML", "Cristóbal Valenzuela", "Gen-2", "Gen-3", "AI video"],
+    "pika": ["Pika Labs", "Demi Guo", "Pika 1.0", "AI video generation", "Pika Art"],
+    
+    # Telecom & AI
+    "nokia": ["Nokia", "Pekka Lundmark", "AI telecom", "network AI", "Belong"],
+    "ericsson": ["Ericsson", "Börje Ekholm", "network intelligence", "AI RAN"],
 }
 
 # News sources
@@ -52,7 +144,20 @@ RSS_FEEDS = {
     "VentureBeat AI": "https://venturebeat.com/category/ai/feed/",
     "The Verge AI": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
     "ArXiv AI Papers": "http://export.arxiv.org/rss/cs.AI",
-    "Hacker News": "https://hnrss.org/frontpage"
+    "ArXiv ML": "http://export.arxiv.org/rss/cs.LG",
+    "ArXiv CL": "http://export.arxiv.org/rss/cs.CL",
+    "Hacker News AI": "https://hnrss.org/frontend?q=ai&sort=by_popularity",
+    "Hacker News ML": "https://hnrss.org/frontend?q=machine%20learning&sort=by_popularity",
+    "Wired AI": "https://www.wired.com/feed/tag/ai/latest",
+    "ZDNet AI": "https://www.zdnet.com/topic/artificial-intelligence/rss.xml",
+    "Analytics Vidhya": "https://www.analyticsvidhya.com/blog/category/artificial-intelligence/feed/",
+    "Towards Data Science": "https://towardsdatascience.com/feed",
+    "MarkTechPost": "https://marktechpost.com/feed/",
+    "Synced": "https://syncedreview.com/feed/",
+    "Unite AI": "https://www.unite.ai/feed/",
+    "AI Trends": "https://www.aitrends.com/feed/",
+    "KDnuggets": "https://www.kdnuggets.com/feed",
+    "Analytics India Mag": "https://analyticsindiamag.com/feed/",
 }
 
 class TechNewsAgent:
